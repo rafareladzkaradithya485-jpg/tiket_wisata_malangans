@@ -1,0 +1,29 @@
+# Operating system files
+Thumbs.db
+Desktop.ini
+
+# PHPStorm / JetBrains
+.idea/
+
+# Composer
+/vendor/
+
+# Node
+node_modules/
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+
+# Railway
+.railway/
