@@ -4,6 +4,7 @@
  * Support untuk Midtrans, Bank Transfer, E-Wallet
  */
 
+session_start();
 require 'config.php';
 
 // Konfigurasi Midtrans

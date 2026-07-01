@@ -1,12 +1,13 @@
 <?php
+session_start();
 require_once 'config.php';
 
-if (!isset($_SESSION['id']) || $_SESSION['role'] !== 'user') {
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'user') {
     header("Location: dashboard_user.php");
     exit();
 }
 
-$user_id = $_SESSION['id'];
+$user_id = $_SESSION['user_id'];
 $nama_user = $_SESSION['nama'];
 
 $query = "SELECT * FROM tiket WHERE user_id = '$user_id' ORDER BY tgl_beli DESC";

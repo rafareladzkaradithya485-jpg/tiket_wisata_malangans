@@ -4,6 +4,7 @@
  * Mengelola proses pengembalian dana
  */
 
+session_start();
 require 'config.php';
 
 class RefundManager {

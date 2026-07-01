@@ -1,8 +1,9 @@
 <?php
+session_start();
 require_once 'config.php';
 
 // Proteksi Halaman
-if (!isset($_SESSION['id']) || $_SESSION['role'] !== 'user') {
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'user') {
     header("Location: login.php");
     exit();
 }
@@ -11,7 +12,7 @@ $wisata_dipilih = isset($_GET['wisata']) ? $_GET['wisata'] : "Destinasi Umum";
 $harga_tiket = ($wisata_dipilih == "Jatim Park") ? 100000 : 75000;
 
 if (isset($_POST['bayar'])) {
-    $user_id = $_SESSION['id'];
+    $user_id = $_SESSION['user_id'];
     $wisata = $_POST['wisata'];
     $jumlah = $_POST['jumlah'];
     $total_harga = $jumlah * $harga_tiket;

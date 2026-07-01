@@ -4,6 +4,7 @@
  * Memprediksi tren penjualan, revenue, dan rekomendasi
  */
 
+session_start();
 require 'config.php';
 
 class AnalyticsAI {

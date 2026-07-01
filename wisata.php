@@ -3,6 +3,8 @@
  * Tampilan Halaman Informasi Wisata
  */
 
+session_start();
+
 require 'config.php';
 require 'wisata_info.php';
 

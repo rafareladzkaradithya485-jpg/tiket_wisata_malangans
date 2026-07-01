@@ -4,6 +4,7 @@
  * Endpoint untuk akses semua fitur dari aplikasi mobile
  */
 
+session_start();
 require 'config.php';
 require 'payment_gateway.php';
 require 'refund_handler.php';

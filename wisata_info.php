@@ -4,6 +4,8 @@
  * Menampilkan dan mengelola informasi wisata
  */
 
+session_start();
+
 require 'config.php';
 
 class WisataManager {

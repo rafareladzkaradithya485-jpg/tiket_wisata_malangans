@@ -1,7 +1,8 @@
 <?php
+session_start();
 require_once 'config.php';
 
-if (isset($_SESSION['id'])) {
+if (isset($_SESSION['user_id'])) {
     if ($_SESSION['role'] == 'admin') {
         header("Location: dashboard_admin.php");
     } else {
@@ -24,7 +25,7 @@ if (isset($_POST['login'])) {
         
         if (password_verify($password, $row['password'])) {
             // Set session
-            $_SESSION['id'] = $row['id'];
+            $_SESSION['user_id'] = $row['id'];
             $_SESSION['nama'] = $row['nama'];
             $_SESSION['role'] = $row['role'];
 
