@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: wisata-malang-web
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    envVars:
+      - key: DB_HOST
+        fromService:
+          name: wisata-malang-db
+          type: pserv
+          property: host
+      - key: DB_PORT
+        fromService:
+          name: wisata-malang-db
+          type: pserv
+          property: port
+      - key: DB_USER
+        value: root
+      - key: DB_PASS
+        value: example
+      - key: DB_NAME
+        value: db_wisata
+
+  - type: pserv
+    name: wisata-malang-db
+    runtime: image
+    image:
+      url: mysql:8.0
+    plan: starter
+    envVars:
+      - key: MYSQL_ROOT_PASSWORD
+        value: example
+      - key: MYSQL_DATABASE
+        value: db_wisata
+    disk:
+      name: mysql-data
+      mountPath: /var/lib/mysql
+      sizeGB: 10

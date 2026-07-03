@@ -56,28 +56,29 @@ Aplikasi PHP sederhana untuk tiket wisata Malang.
 
 4. Atur environment variables jika perlu.
 
-## Local Testing dengan Docker Compose
+## Deploy ke Render
 
-Untuk menjalankan aplikasi secara lokal menggunakan Docker Compose:
+Render dapat menggunakan `render.yaml` untuk menjalankan layanan web dan layanan MySQL secara bersama-sama.
 
+1. Pastikan repo sudah di-push ke GitHub.
+2. Buka dashboard Render di:
+   - https://render.com
+3. Buat "Web Service" baru dan pilih GitHub repository `tiket_wisata_malangans`.
+4. Gunakan `render.yaml` di root repo sebagai Blueprint untuk konfigurasi.
+5. Untuk opsi manual atau CI/CD, pasang Render CLI dengan cara direct download dari GitHub Releases:
+   - https://github.com/render-oss/cli/releases
+   - Download `cli_<version>_windows_amd64.zip` untuk Windows
+   - Ekstrak dan jalankan `render.exe`
+
+Jika Anda menggunakan Render CLI, langkah dasar deploy adalah:
 ```bash
-docker-compose up --build
+render login
+# pilih workspace
+render blueprints validate render.yaml
+render blueprints apply render.yaml
 ```
 
-Lalu buka:
-
-```bash
-http://localhost:8080
-```
-
-Database akan tersedia pada port `3307` untuk koneksi lokal jika perlu.
-
-## Catatan
-
-- `Dockerfile` sudah dibuat untuk menjalankan PHP + Apache di Railway.
-- `docker-compose.yml` dibuat untuk testing lokal dengan MySQL.
-- `config.php` sudah mendukung environment variables Railway dan Docker Compose.
-- Pastikan Anda telah membuat tabel `users` dan `tiket` di database `db_wisata`.
+> Catatan: Render tidak menyediakan managed MySQL langsung, jadi `render.yaml` ini membuat layanan MySQL privat menggunakan image MySQL dan menghubungkannya ke layanan PHP.
 
 ## Local Testing dengan Docker Compose
 
