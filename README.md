@@ -45,6 +45,10 @@ Aplikasi PHP sederhana untuk tiket wisata Malang.
 
 1. Pastikan Git sudah terinisialisasi dan sudah di-push.
 2. Pasang Railway CLI di Windows:
+Quick health & DB checks
+
+- `health.php` — basic runtime check. Example: `https://<your-service>/health.php`
+- `db_check.php` — attempts DB connection and lists tables. Example: `https://<your-service>/db_check.php`
    https://railway.app/docs/cli
 3. Jalankan:
    ```bash
