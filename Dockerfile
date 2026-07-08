@@ -8,7 +8,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /var/www/html
 COPY . /var/www/html
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "php -S 0.0.0.0:${PORT:-8000} -t /var/www/html"]
+CMD ["/usr/local/bin/entrypoint.sh"]
