@@ -27,6 +27,11 @@ if (!defined('WISATA_MALANG_CONFIG_LOADED')) {
         $pass = getenv('DB_PASS') ?: getenv('MYSQL_PASSWORD') ?: getenv('MYSQL_PASS') ?: "";
         $db   = getenv('DB_NAME') ?: getenv('MYSQL_DATABASE') ?: getenv('MYSQL_DB') ?: "db_wisata";
         $port = (int) (getenv('DB_PORT') ?: getenv('MYSQL_PORT') ?: 3306);
+
+        // If the deployment environment provides a separate MYSQL_HOST, prefer it over localhost.
+        if (($host === 'localhost' || $host === '127.0.0.1') && getenv('MYSQL_HOST')) {
+            $host = getenv('MYSQL_HOST');
+        }
     }
 
     // Normalize obvious localhost values
@@ -45,28 +50,42 @@ if (!defined('WISATA_MALANG_CONFIG_LOADED')) {
 
     $conn = null;
     $lastError = '';
+    $tryHost = null;
+    $tryPort = null;
+
+    // Disable mysqli exception throwing for the connection attempts.
+    if (function_exists('mysqli_report')) {
+        mysqli_report(MYSQLI_REPORT_OFF);
+    }
+
     foreach ($candidates as $candidateHost) {
-        // If candidate is the literal 'localhost', prefer 127.0.0.1 to force TCP
         $tryHost = ($candidateHost === 'localhost') ? '127.0.0.1' : $candidateHost;
         $tryHost = trim($tryHost);
-        // Ensure port is integer
         $tryPort = (int)$port;
-        $conn = @mysqli_connect($tryHost, $user, $pass, $db, $tryPort);
-        if ($conn) {
-            // Found working connection
+
+        $init = mysqli_init();
+        if ($init === false) {
+            $lastError = 'Failed to initialize mysqli';
+            continue;
+        }
+
+        $connected = @mysqli_real_connect($init, $tryHost, $user, $pass, $db, $tryPort);
+        if ($connected) {
+            $conn = $init;
             break;
         }
+
         $lastError = mysqli_connect_error();
     }
 
     if (!$conn) {
-        // Provide useful debug info for deployment logs without leaking sensitive creds
         $displayHost = isset($tryHost) ? $tryHost : $host;
         error_log("DB connection failed. Tried host={$displayHost} port={$tryPort} db={$db} user={$user}. Error: {$lastError}");
-        die("Koneksi ke database gagal: " . $lastError);
+        $DB_CONNECTION_ERROR = $lastError;
+        $conn = null;
+    } else {
+        mysqli_set_charset($conn, 'utf8mb4');
     }
-
-    mysqli_set_charset($conn, 'utf8mb4');
 
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
@@ -78,7 +97,10 @@ if (!defined('WISATA_MALANG_CONFIG_LOADED')) {
             $data = trim($data);
             $data = stripslashes($data);
             $data = htmlspecialchars($data);
-            return mysqli_real_escape_string($conn, $data);
+            if ($conn) {
+                return mysqli_real_escape_string($conn, $data);
+            }
+            return $data;
         }
     }
 
@@ -90,6 +112,7 @@ if (!defined('WISATA_MALANG_CONFIG_LOADED')) {
 
 if (!function_exists('table_exists')) {
     function table_exists($conn, $table_name) {
+        if (!$conn) return false;
         $safe_name = mysqli_real_escape_string($conn, $table_name);
         $result = mysqli_query($conn, "SHOW TABLES LIKE '$safe_name'");
         return $result && mysqli_num_rows($result) > 0;
@@ -98,6 +121,7 @@ if (!function_exists('table_exists')) {
 
 if (!function_exists('column_exists')) {
     function column_exists($conn, $table_name, $column_name) {
+        if (!$conn) return false;
         $safe_table = mysqli_real_escape_string($conn, $table_name);
         $safe_column = mysqli_real_escape_string($conn, $column_name);
         $result = mysqli_query($conn, "SHOW COLUMNS FROM `$safe_table` LIKE '$safe_column'");
@@ -107,6 +131,7 @@ if (!function_exists('column_exists')) {
 
 if (!function_exists('ensure_column_exists')) {
     function ensure_column_exists($conn, $table_name, $column_name, $definition) {
+        if (!$conn) return;
         if (!column_exists($conn, $table_name, $column_name)) {
             mysqli_query($conn, "ALTER TABLE `$table_name` ADD COLUMN `$column_name` $definition");
         }
@@ -143,6 +168,7 @@ if (!function_exists('resolve_wisata_image_url')) {
 }
 
 function ensure_required_tables($conn) {
+    if (!$conn) return;
     $queries = [];
 
     $queries[] = "CREATE TABLE IF NOT EXISTS users (
@@ -236,6 +262,7 @@ function ensure_required_tables($conn) {
 }
 
 function ensure_seed_data($conn) {
+    if (!$conn) return;
     $result = mysqli_query($conn, "SELECT COUNT(*) as count FROM wisata");
     $row = mysqli_fetch_assoc($result);
     if (!$row || (int)$row['count'] === 0) {
@@ -256,7 +283,10 @@ function input_bersih($data) {
     $data = trim($data);
     $data = stripslashes($data);
     $data = htmlspecialchars($data);
-    return mysqli_real_escape_string($conn, $data);
+    if ($conn) {
+        return mysqli_real_escape_string($conn, $data);
+    }
+    return $data;
 }
 
 if (!function_exists('ensure_wisata_image_urls')) {
