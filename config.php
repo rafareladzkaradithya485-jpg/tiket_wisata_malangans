@@ -4,6 +4,10 @@ if (!defined('WISATA_MALANG_CONFIG_LOADED')) {
 
     error_reporting(E_ALL);
     ini_set('display_errors', 1);
+    // Disable mysqli exception throwing so we can handle connection failures gracefully
+    if (function_exists('mysqli_report')) {
+        mysqli_report(MYSQLI_REPORT_OFF);
+    }
 
     // Prefer explicit TCP host; using 127.0.0.1 avoids socket lookup failures
     // First, check if a DATABASE_URL (or RAILWAY_DATABASE_URL) is provided (format: mysql://user:pass@host:port/db)
