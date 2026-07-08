@@ -9,19 +9,33 @@ if (isset($_POST['register'])) {
     
     $password_aman = password_hash($password, PASSWORD_DEFAULT);
 
-    $cek_user = mysqli_query($conn, "SELECT * FROM users WHERE username = '$username'");
-    if (mysqli_num_rows($cek_user) > 0) {
+    // Check existing username using prepared statement
+    $stmt = mysqli_prepare($conn, "SELECT id FROM users WHERE username = ? LIMIT 1");
+    mysqli_stmt_bind_param($stmt, 's', $username);
+    mysqli_stmt_execute($stmt);
+    mysqli_stmt_store_result($stmt);
+    if (mysqli_stmt_num_rows($stmt) > 0) {
         $error = "Username sudah digunakan, cari yang lain!";
+        mysqli_stmt_close($stmt);
     } else {
-        $query = "INSERT INTO users (nama, username, password, role) VALUES ('$nama', '$username', '$password_aman', 'user')";
-        
-        if (mysqli_query($conn, $query)) {
-            echo "<script>
-                    alert('Pendaftaran Berhasil! Silakan Login.');
-                    window.location='login.php';
-                </script>";
+        mysqli_stmt_close($stmt);
+        // Insert new user with prepared statement
+        $ins = mysqli_prepare($conn, "INSERT INTO users (nama, username, password, role) VALUES (?, ?, ?, 'user')");
+        if ($ins) {
+            mysqli_stmt_bind_param($ins, 'sss', $nama, $username, $password_aman);
+            if (mysqli_stmt_execute($ins)) {
+                mysqli_stmt_close($ins);
+                echo "<script>
+                        alert('Pendaftaran Berhasil! Silakan Login.');
+                        window.location='login.php';
+                    </script>";
+                exit();
+            } else {
+                $error = "Terjadi kesalahan sistem saat mendaftar: " . mysqli_stmt_error($ins);
+                mysqli_stmt_close($ins);
+            }
         } else {
-            $error = "Terjadi kesalahan sistem saat mendaftar.";
+            $error = "Terjadi kesalahan sistem saat mempersiapkan query pendaftaran.";
         }
     }
 }

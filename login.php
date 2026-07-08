@@ -17,30 +17,36 @@ if (isset($_POST['login'])) {
     $username = input_bersih($_POST['username']);
     $password = $_POST['password'];
 
-    $query = "SELECT * FROM users WHERE username = '$username'";
-    $result = mysqli_query($conn, $query);
+    // Use prepared statement to fetch user
+    $stmt = mysqli_prepare($conn, "SELECT id, nama, password, role FROM users WHERE username = ? LIMIT 1");
+    if ($stmt) {
+        mysqli_stmt_bind_param($stmt, 's', $username);
+        mysqli_stmt_execute($stmt);
+        $res = mysqli_stmt_get_result($stmt);
+        if ($res && mysqli_num_rows($res) === 1) {
+            $row = mysqli_fetch_assoc($res);
+            if (password_verify($password, $row['password'])) {
+                // Set session
+                $_SESSION['user_id'] = $row['id'];
+                $_SESSION['nama'] = $row['nama'];
+                $_SESSION['role'] = $row['role'];
 
-    if (mysqli_num_rows($result) === 1) {
-        $row = mysqli_fetch_assoc($result);
-        
-        if (password_verify($password, $row['password'])) {
-            // Set session
-            $_SESSION['user_id'] = $row['id'];
-            $_SESSION['nama'] = $row['nama'];
-            $_SESSION['role'] = $row['role'];
-
-            // Redirect berdasarkan role
-            if ($row['role'] == 'admin') {
-                header("Location: dashboard_admin.php");
+                // Redirect berdasarkan role
+                if ($row['role'] == 'admin') {
+                    header("Location: dashboard_admin.php");
+                } else {
+                    header("Location: dashboard_user.php");
+                }
+                exit();
             } else {
-                header("Location: dashboard_user.php");
+                $error = "Password salah!";
             }
-            exit();
         } else {
-            $error = "Password salah!";
+            $error = "Username tidak ditemukan!";
         }
+        mysqli_stmt_close($stmt);
     } else {
-        $error = "Username tidak ditemukan!";
+        $error = "Terjadi kesalahan sistem saat memproses login.";
     }
 }
 ?>

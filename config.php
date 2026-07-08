@@ -5,16 +5,61 @@ if (!defined('WISATA_MALANG_CONFIG_LOADED')) {
     error_reporting(E_ALL);
     ini_set('display_errors', 1);
 
-    $host = getenv('DB_HOST') ?: getenv('MYSQL_HOST') ?: getenv('MYSQLHOST') ?: "localhost";
-    $user = getenv('DB_USER') ?: getenv('MYSQL_USER') ?: getenv('MYSQL_USERNAME') ?: "root";
-    $pass = getenv('DB_PASS') ?: getenv('MYSQL_PASSWORD') ?: getenv('MYSQL_PASS') ?: "";
-    $db   = getenv('DB_NAME') ?: getenv('MYSQL_DATABASE') ?: getenv('MYSQL_DB') ?: "db_wisata";
-    $port = getenv('DB_PORT') ?: getenv('MYSQL_PORT') ?: 3306;
+    // Prefer explicit TCP host; using 127.0.0.1 avoids socket lookup failures
+    // First, check if a DATABASE_URL (or RAILWAY_DATABASE_URL) is provided (format: mysql://user:pass@host:port/db)
+    $databaseUrl = getenv('DATABASE_URL') ?: getenv('RAILWAY_DATABASE_URL') ?: getenv('DB_URL');
+    if ($databaseUrl) {
+        $parts = @parse_url($databaseUrl);
+        if ($parts !== false && isset($parts['host'])) {
+            $host = $parts['host'];
+            $user = isset($parts['user']) ? $parts['user'] : (getenv('DB_USER') ?: getenv('MYSQL_USER') ?: 'root');
+            $pass = isset($parts['pass']) ? $parts['pass'] : (getenv('DB_PASS') ?: getenv('MYSQL_PASSWORD') ?: '');
+            $db   = isset($parts['path']) ? ltrim($parts['path'], '/') : (getenv('DB_NAME') ?: getenv('MYSQL_DATABASE') ?: 'db_wisata');
+            $port = isset($parts['port']) ? (int)$parts['port'] : (int)(getenv('DB_PORT') ?: getenv('MYSQL_PORT') ?: 3306);
+        }
+    } else {
+        $host = getenv('DB_HOST') ?: getenv('MYSQL_HOST') ?: getenv('MYSQLHOST') ?: "127.0.0.1";
+        $user = getenv('DB_USER') ?: getenv('MYSQL_USER') ?: getenv('MYSQL_USERNAME') ?: "root";
+        $pass = getenv('DB_PASS') ?: getenv('MYSQL_PASSWORD') ?: getenv('MYSQL_PASS') ?: "";
+        $db   = getenv('DB_NAME') ?: getenv('MYSQL_DATABASE') ?: getenv('MYSQL_DB') ?: "db_wisata";
+        $port = (int) (getenv('DB_PORT') ?: getenv('MYSQL_PORT') ?: 3306);
+    }
 
-    $conn = mysqli_connect($host, $user, $pass, $db, $port);
+    // Normalize obvious localhost values
+    if (is_string($host)) {
+        $host = trim($host);
+    }
+
+    // Build candidate hosts to try (prefer explicit TCP 127.0.0.1)
+    $candidates = [];
+    if ($host !== '') {
+        $candidates[] = $host;
+    }
+    if (!in_array('127.0.0.1', $candidates, true)) {
+        $candidates[] = '127.0.0.1';
+    }
+
+    $conn = null;
+    $lastError = '';
+    foreach ($candidates as $candidateHost) {
+        // If candidate is the literal 'localhost', prefer 127.0.0.1 to force TCP
+        $tryHost = ($candidateHost === 'localhost') ? '127.0.0.1' : $candidateHost;
+        $tryHost = trim($tryHost);
+        // Ensure port is integer
+        $tryPort = (int)$port;
+        $conn = @mysqli_connect($tryHost, $user, $pass, $db, $tryPort);
+        if ($conn) {
+            // Found working connection
+            break;
+        }
+        $lastError = mysqli_connect_error();
+    }
 
     if (!$conn) {
-        die("Koneksi ke database gagal: " . mysqli_connect_error());
+        // Provide useful debug info for deployment logs without leaking sensitive creds
+        $displayHost = isset($tryHost) ? $tryHost : $host;
+        error_log("DB connection failed. Tried host={$displayHost} port={$tryPort} db={$db} user={$user}. Error: {$lastError}");
+        die("Koneksi ke database gagal: " . $lastError);
     }
 
     mysqli_set_charset($conn, 'utf8mb4');
